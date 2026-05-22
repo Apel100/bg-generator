@@ -166,69 +166,25 @@ html,body{height:100%;background:var(--bg-deep);color:var(--txt);font-family:'In
       <!-- GENERATE -->
       <div class="s-sec">
         <div class="s-label">⚡ Generate</div>
-        <div class="gen-grid">
-          <button class="btn-main" onclick="generateAll()">🎲 New Design</button>
-          <button class="btn-sm s" onclick="shuffleStyle()" title="New background & decorations">🔀 Style</button>
-          <button class="btn-sm c" onclick="recolor()" title="New color palette">🎨 Color</button>
-          <button class="btn-sm l" onclick="relayout()" title="New layout">📐 Layout</button>
-          <button class="btn-sm f" onclick="retypography()" title="New font style" style="display: none;">✍️ Font</button>
-        </div>
-        <div class="history-controls">
-          <button class="btn-history" id="undo-btn" onclick="undo()" disabled title="Undo last change (Ctrl+Z)">↩ Undo</button>
-          <button class="btn-history" id="redo-btn" onclick="redo()" disabled title="Redo (Ctrl+Y)">↪ Redo</button>
-        </div>
-
-        <div class="gen-count">Generated: <strong id="gen-count">0</strong></div>
+        <button class="btn-main" onclick="generateAll()" style="width: 100%;">🎲 New Design</button>
       </div>
 
-
-      <!-- SELECTION INSPECTOR -->
+      <!-- BACKGROUND SETTINGS -->
       <div class="s-sec">
-        <div class="s-label">⚙️ Object Controls</div>
-        <div class="inspector-panel" id="inspector-panel">
-          <div class="insp-row">
-            <span class="d-lbl">Type</span>
-            <span class="insp-val" id="insp-type">Text</span>
-          </div>
-          <div id="insp-text-controls">
-            <div class="insp-row">
-              <span class="d-lbl">Size</span>
-              <input type="range" class="range-inp" id="insp-size" min="22" max="400" value="120">
-            </div>
-            <div class="insp-row">
-              <span class="d-lbl">Color</span>
-              <input type="color" class="color-inp" id="insp-color">
-            </div>
-            <div class="insp-row">
-              <span class="d-lbl">Stroke Width</span>
-              <input type="range" class="range-inp" id="insp-stroke-w" min="0" max="20" value="5">
-            </div>
-            <div class="insp-row">
-              <span class="d-lbl">Font Family</span>
-              <select class="select-inp" id="insp-font-family">
-                <option value="Anton">Anton</option>
-                <option value="Bebas Neue">Bebas Neue</option>
-                <option value="Oswald">Oswald</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Hind Siliguri">Hind Siliguri</option>
-                <option value="Noto Sans Bengali">Noto Sans Bengali</option>
-                <option value="Russo One">Russo One</option>
-                <option value="Righteous">Righteous</option>
-                <option value="Permanent Marker">Permanent Marker</option>
-                <option value="Black Han Sans">Black Han Sans</option>
-              </select>
-            </div>
-          </div>
-          <div class="insp-row" style="margin-top: 10px; border-top: 1px solid var(--border-sub); padding-top: 8px;">
-            <button class="btn-action" onclick="bringToFront()" title="Bring to top layer">🔼 Front</button>
-            <button class="btn-action" onclick="sendToBack()" title="Send to bottom layer">🔽 Back</button>
-            <button class="btn-action del" onclick="deleteSelected()" title="Delete object">🗑️ Delete</button>
-          </div>
+        <div class="s-label">🎨 Background Settings</div>
+        <div class="inp-grp">
+          <label class="inp-lbl" for="bg-style-select">Background Style</label>
+          <select class="select-inp" id="bg-style-select" onchange="changeBGStyle(this.value)" style="width: 100%; padding: 8px;">
+            <!-- Options populated dynamically in JS -->
+          </select>
         </div>
-        <div id="inspector-empty" class="d-val" style="text-align: center; padding: 8px; color: var(--txt3); font-style: italic;">
-          Select any text or image on canvas to inspect
+        <div class="inp-grp" style="margin-top: 8px; flex-direction: row; align-items: center; gap: 8px;">
+          <input type="checkbox" id="bg-vignette-toggle" onchange="toggleVignette(this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--acc);">
+          <label for="bg-vignette-toggle" class="inp-lbl" style="cursor: pointer; margin-bottom: 0; user-select: none;">Apply Vignette Overlay</label>
         </div>
       </div>
+
+
 
       <!-- MOTION CONTROL -->
       <div class="s-sec">
@@ -270,21 +226,13 @@ html,body{height:100%;background:var(--bg-deep);color:var(--txt);font-family:'In
         </div>
       </div>
 
-      <!-- HISTORY GALLERY -->
-      <div class="s-sec">
-        <div class="s-label">🕒 History <span style="color:var(--acc2);font-weight:normal;text-transform:none;letter-spacing:0;font-size:9px">· click to load</span></div>
-        <div class="history-tray-container">
-          <div class="tray-scroll" id="history-scroll">
-            <div class="tray-empty">No design yet. Press "New Design"!</div>
-          </div>
-        </div>
-      </div>
+
 
       <!-- EXPORT -->
       <div class="s-sec" style="border-bottom: none; display: flex; flex-direction: column; gap: 8px;">
         <div class="s-label">💾 Export</div>
-        <button class="exp-btn" onclick="exportMP4(2560, 1440, '2K')">🎬 Export 2K MP4 (10s)</button>
         <button class="exp-btn" style="background: linear-gradient(135deg, var(--acc), var(--acc2));" onclick="exportMP4(1920, 1080, '1080p')">🎬 Export 1080p MP4 (10s)</button>
+        <button class="exp-btn" onclick="exportMP4(2560, 1440, '2K')">🎬 Export 2K MP4 (10s)</button>
       </div>
     </aside>
 
@@ -312,7 +260,7 @@ html,body{height:100%;background:var(--bg-deep);color:var(--txt);font-family:'In
 //  CARDFORGE — Procedural Card Generator
 // ═══════════════════════════════════════════
 const CW = 1920, CH = 1080;
-let fc, currentScale = 1, genCount = 0, avatarURL = null, designState = {}, bgSpeedMultiplier = 1.0, decorSpeedMultiplier = 1.0, bgTime = 0, decorTime = 0;
+let fc, currentScale = 1, avatarURL = null, designState = {}, bgSpeedMultiplier = 1.0, decorSpeedMultiplier = 1.0, bgTime = 0, decorTime = 0, applyVignetteOverlay = false;
 
 function hexToRgba(hex, alpha) {
   if (typeof hex !== 'string') return `rgba(0,0,0,${alpha})`;
@@ -326,10 +274,7 @@ function hexToRgba(hex, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// History Stacks
-let undoStack = [];
-let redoStack = [];
-let savedGallery = []; // List of saved objects for history tray
+
 
 // ── PALETTES (63) ──────────────────────────
 const PALETTES = [
@@ -412,6 +357,8 @@ const BG_STYLES = [
   {id:'hex',            n:'Hexagon',        sz:60,op:0.60},
   {id:'conc',           n:'Concentric',     op:0.65},
   {id:'wavy',           n:'Wavy Lines',     cnt:8,op:0.55},
+  {id:'vignette_soho',  n:'Vignette (With BG)'},
+  {id:'vignette_chara', n:'Vignette only (No BG)'},
 ];
 
 // ── FONT STYLES (20) ───────────────────────
@@ -930,8 +877,14 @@ function renderBG(bs,p,t=0){
       x.beginPath();x.moveTo(W*0.55+splitOffset,0);x.lineTo(W,0);x.lineTo(W,H);x.lineTo(W*0.35+splitOffset,H);x.closePath();x.fill();
       x.fillStyle=lin(135,[[0,hexToRgba(bg,0)],[1,bg+'80']]);x.fillRect(0,0,W,H);break;
     }
-    case 'vignette':{
+    case 'vignette':
+    case 'vignette_soho':{
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
+      const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
+      vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');x.fillStyle=vg;x.fillRect(0,0,W,H);break;
+    }
+    case 'vignette_chara':{
+      x.clearRect(0,0,W,H);
       const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
       vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');x.fillStyle=vg;x.fillRect(0,0,W,H);break;
     }
@@ -982,6 +935,16 @@ function renderBG(bs,p,t=0){
     default: x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
   }
 
+  // Apply global vignette overlay if enabled (unless it is already a vignette style background)
+  if (applyVignetteOverlay && bs.id !== 'vignette' && bs.id !== 'vignette_soho' && bs.id !== 'vignette_chara') {
+    const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
+    vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');
+    x.save();
+    x.fillStyle=vg;
+    x.fillRect(0,0,W,H);
+    x.restore();
+  }
+
   // Apply rich film grain overlay to ALL styles
   x.save();
   x.fillStyle = noisePat;
@@ -989,12 +952,13 @@ function renderBG(bs,p,t=0){
   x.fillRect(0, 0, W, H);
   x.restore();
 
-  // Universal dark overlay — tones down all backgrounds so overlay elements
-  // (text, graphics added in Premiere Pro) remain clearly readable
-  x.save();
-  x.fillStyle = 'rgba(0,0,0,0.28)';
-  x.fillRect(0, 0, W, H);
-  x.restore();
+  // Universal dark overlay — tones down all backgrounds (bypassed for Vignette only style)
+  if (bs.id !== 'vignette_chara') {
+    x.save();
+    x.fillStyle = 'rgba(0,0,0,0.28)';
+    x.fillRect(0, 0, W, H);
+    x.restore();
+  }
 
   return bgCv.toDataURL();
 }
@@ -1083,9 +1047,17 @@ function addTextBacking(layout, pal) {
 }
 
 // ── RENDER DESIGN ─────────────────────────
-async function renderDesign(ds, skipHistoryPush = false){
+async function renderDesign(ds){
   setLoading(true);
   const {pal,bg,layout,fs,di}=ds;
+  
+  // Sync UI controls
+  applyVignetteOverlay = ds.vignetteOverlay || false;
+  const selectEl = document.getElementById('bg-style-select');
+  if (selectEl) selectEl.value = bg.id;
+  const toggleEl = document.getElementById('bg-vignette-toggle');
+  if (toggleEl) toggleEl.checked = applyVignetteOverlay;
+
   document.getElementById('i-layout').textContent=layout.n;
   document.getElementById('i-color').textContent=pal.n;
   document.getElementById('i-bg').textContent=bg.n;
@@ -1093,7 +1065,6 @@ async function renderDesign(ds, skipHistoryPush = false){
   
   // Clear canvas and reset selection
   fc.clear();
-  hideInspector();
 
   // 1. Background
   const bgURL=renderBG(bg,pal,bgTime);
@@ -1112,162 +1083,11 @@ async function renderDesign(ds, skipHistoryPush = false){
 
   fc.renderAll();
   setLoading(false);
-
-  // If this rendering is NOT an Undo/Redo or a Load action, push to Undo Stack
-  if(!skipHistoryPush){
-    pushHistoryState(ds);
-  }
 }
 
 
 
-// ── UNDO / REDO SYSTEM ─────────────────────
-function pushHistoryState(state) {
-  // Clone state to save it cleanly
-  const stateCopy = JSON.parse(JSON.stringify(state));
-  undoStack.push({
-    designState: stateCopy,
-    avatarURL: avatarURL
-  });
-  // Cap undo stack at 30 items
-  if(undoStack.length > 30) {
-    undoStack.shift();
-  }
-  // Clear redo stack when new action is taken
-  redoStack = [];
-  updateHistoryButtons();
-}
-
-function undo() {
-  if (undoStack.length <= 1) return; // Need at least the current and previous state
-  
-  const current = undoStack.pop();
-  redoStack.push(current);
-  
-  const previous = undoStack[undoStack.length - 1];
-  designState = JSON.parse(JSON.stringify(previous.designState));
-  avatarURL = previous.avatarURL;
-  if(avatarURL) {
-    document.getElementById('av-preview').src = avatarURL;
-  }
-  
-  renderDesign(designState, true);
-  updateHistoryButtons();
-  toast('↩', 'Undo applied');
-}
-
-function redo() {
-  if (redoStack.length === 0) return;
-  
-  const next = redoStack.pop();
-  undoStack.push(next);
-  
-  designState = JSON.parse(JSON.stringify(next.designState));
-  avatarURL = next.avatarURL;
-  if(avatarURL) {
-    document.getElementById('av-preview').src = avatarURL;
-  }
-  
-  renderDesign(designState, true);
-  updateHistoryButtons();
-  toast('↪', 'Redo applied');
-}
-
-function updateHistoryButtons() {
-  document.getElementById('undo-btn').disabled = undoStack.length <= 1;
-  document.getElementById('redo-btn').disabled = redoStack.length === 0;
-}
-
-// Keyboard shortcuts (Ctrl+Z, Ctrl+Y, Space for motion)
-window.addEventListener('keydown', e => {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
-    e.preventDefault();
-    undo();
-  }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
-    e.preventDefault();
-    redo();
-  }
-
-});
-
-// ── SELECTION INSPECTOR ────────────────────
-function initSelectionListeners() {
-  fc.on('selection:created', e => showInspector(e.selected[0]));
-  fc.on('selection:updated', e => showInspector(e.selected[0]));
-  fc.on('selection:cleared', hideInspector);
-  
-  // Input binders
-  document.getElementById('insp-size').addEventListener('input', e => {
-    const active = fc.getActiveObject();
-    if (active && (active.type === 'textbox' || active.type === 'text')) {
-      active.set('fontSize', parseInt(e.target.value));
-      fc.renderAll();
-    }
-  });
-  
-  document.getElementById('insp-color').addEventListener('input', e => {
-    const active = fc.getActiveObject();
-    if (active) {
-      active.set('fill', e.target.value);
-      fc.renderAll();
-    }
-  });
-
-  document.getElementById('insp-stroke-w').addEventListener('input', e => {
-    const active = fc.getActiveObject();
-    if (active) {
-      active.set('strokeWidth', parseInt(e.target.value));
-      if (!active.stroke && parseInt(e.target.value) > 0) {
-        active.set('stroke', '#000000');
-      }
-      fc.renderAll();
-    }
-  });
-
-  document.getElementById('insp-font-family').addEventListener('change', e => {
-    const active = fc.getActiveObject();
-    if (active && (active.type === 'textbox' || active.type === 'text')) {
-      active.set('fontFamily', e.target.value);
-      fc.renderAll();
-    }
-  });
-}
-
-function showInspector(obj) {
-  if (!obj) return;
-  document.getElementById('inspector-empty').style.display = 'none';
-  const panel = document.getElementById('inspector-panel');
-  panel.classList.add('active');
-  
-  const typeEl = document.getElementById('insp-type');
-  const textControls = document.getElementById('insp-text-controls');
-  
-  if (obj.type === 'textbox' || obj.type === 'text') {
-    typeEl.textContent = 'Text Element';
-    textControls.style.display = 'block';
-    
-    // Set field values based on selected object
-    document.getElementById('insp-size').value = obj.fontSize || 80;
-    document.getElementById('insp-stroke-w').value = obj.strokeWidth || 0;
-    document.getElementById('insp-font-family').value = obj.fontFamily || 'Anton';
-    
-    if (typeof obj.fill === 'string') {
-      document.getElementById('insp-color').value = obj.fill.startsWith('#') ? obj.fill : '#ffffff';
-    }
-  } else if (obj.id === 'avatar') {
-    typeEl.textContent = 'Avatar Photo';
-    textControls.style.display = 'none';
-  } else {
-    typeEl.textContent = 'Decoration / Panel';
-    textControls.style.display = 'none';
-  }
-}
-
-function hideInspector() {
-  document.getElementById('inspector-panel').classList.remove('active');
-  document.getElementById('inspector-empty').style.display = 'block';
-}
+// Sidebar Inspector and Undo/Redo systems removed
 
 function bringToFront() {
   const active = fc.getActiveObject();
@@ -1307,69 +1127,7 @@ function deleteSelected() {
   }
 }
 
-// ── DESIGN HISTORY GALLERY (TRAY) ──────────
-function addDesignToTray(ds) {
-  // Capture small preview (160x90px)
-  try {
-    const scaleFactor = 160 / CW;
-    const thumbUrl = fc.toDataURL({
-      format: 'png',
-      quality: 0.8,
-      multiplier: scaleFactor
-    });
-    
-    // Add to saved gallery
-    savedGallery.unshift({
-      thumbnail: thumbUrl,
-      designState: JSON.parse(JSON.stringify(ds)),
-      avatarURL: avatarURL
-    });
-    
-    // Limit gallery to last 12 items
-    if(savedGallery.length > 12) {
-      savedGallery.pop();
-    }
-    
-    renderTray();
-  } catch (e) {
-    console.error("Failed to capture thumbnail", e);
-  }
-}
-
-function renderTray() {
-  const scroll = document.getElementById('history-scroll');
-  scroll.innerHTML = '';
-  
-  if (savedGallery.length === 0) {
-    scroll.innerHTML = '<div class="tray-empty">No design generated yet. Press "New Design" to begin!</div>';
-    return;
-  }
-  
-  savedGallery.forEach((item, index) => {
-    const div = document.createElement('div');
-    div.className = 'tray-item';
-    div.title = `Restore Design #${savedGallery.length - index}`;
-    div.innerHTML = `<img src="${item.thumbnail}" alt="Saved Thumbnail">`;
-    div.addEventListener('click', () => restoreFromTray(index));
-    scroll.appendChild(div);
-  });
-}
-
-function restoreFromTray(index) {
-  const item = savedGallery[index];
-  if (!item) return;
-  
-  designState = JSON.parse(JSON.stringify(item.designState));
-  avatarURL = item.avatarURL;
-  if(avatarURL) {
-    document.getElementById('av-preview').src = avatarURL;
-  } else {
-    document.getElementById('av-preview').src = getDefaultAv(designState.pal);
-  }
-  
-  renderDesign(designState);
-  toast('🕒', 'Restored design from history');
-}
+// Design History Gallery Tray removed
 
 // ── RANDOM HELPERS ────────────────────────
 function rnd(arr){return arr[Math.floor(Math.random()*arr.length)];}
@@ -1395,51 +1153,29 @@ function mkState(){
     bg: bg,
     layout: rnd(LAYOUTS),
     fs: rnd(FONT_STYLES),
-    di: getRandomDecor(bg)
+    di: getRandomDecor(bg),
+    vignetteOverlay: applyVignetteOverlay
   };
+}
+
+async function changeBGStyle(bgId) {
+  const bg = BG_STYLES.find(b => b.id === bgId);
+  if (bg) {
+    designState.bg = bg;
+    await renderDesign(designState);
+  }
+}
+
+async function toggleVignette(checked) {
+  applyVignetteOverlay = checked;
+  designState.vignetteOverlay = checked;
+  await renderDesign(designState);
 }
 
 // ── UI ACTIONS ────────────────────────────
 async function generateAll(){
   designState=mkState();
-  genCount++;
-  document.getElementById('gen-count').textContent=genCount;
   await renderDesign(designState);
-  // Add to bottom gallery preview
-  setTimeout(() => addDesignToTray(designState), 200);
-}
-
-async function shuffleStyle(){
-  designState.bg=rnd(BG_STYLES);
-  designState.di=getRandomDecor(designState.bg);
-  genCount++;
-  document.getElementById('gen-count').textContent=genCount;
-  await renderDesign(designState);
-  setTimeout(() => addDesignToTray(designState), 200);
-}
-
-async function recolor(){
-  designState.pal=rnd(PALETTES);
-  genCount++;
-  document.getElementById('gen-count').textContent=genCount;
-  await renderDesign(designState);
-  setTimeout(() => addDesignToTray(designState), 200);
-}
-
-async function relayout(){
-  designState.layout=rnd(LAYOUTS);
-  genCount++;
-  document.getElementById('gen-count').textContent=genCount;
-  await renderDesign(designState);
-  setTimeout(() => addDesignToTray(designState), 200);
-}
-
-async function retypography(){
-  designState.fs=rnd(FONT_STYLES);
-  genCount++;
-  document.getElementById('gen-count').textContent=genCount;
-  await renderDesign(designState);
-  setTimeout(() => addDesignToTray(designState), 200);
 }
 
 
@@ -1669,7 +1405,12 @@ async function init(){
   
   updateScale();
   window.addEventListener('resize',updateScale);
-  initSelectionListeners();
+
+  // Populate background styles dropdown
+  const bgSelect = document.getElementById('bg-style-select');
+  if (bgSelect) {
+    bgSelect.innerHTML = BG_STYLES.map(bg => `<option value="${bg.id}">${bg.n}</option>`).join('');
+  }
 
   // Motion speed slider listeners
   document.getElementById('motion-speed-bg').addEventListener('input', e => {
@@ -1693,8 +1434,6 @@ async function init(){
       document.getElementById('av-preview').src=avatarURL;
       await renderDesign(designState);
       toast('✅','Photo uploaded!');
-      // add to tray
-      setTimeout(() => addDesignToTray(designState), 200);
     };
     r.readAsDataURL(f);
   });
