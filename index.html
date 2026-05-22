@@ -357,8 +357,7 @@ const BG_STYLES = [
   {id:'hex',            n:'Hexagon',        sz:60,op:0.60},
   {id:'conc',           n:'Concentric',     op:0.65},
   {id:'wavy',           n:'Wavy Lines',     cnt:8,op:0.55},
-  {id:'vignette_soho',  n:'Vignette (With BG)'},
-  {id:'vignette_chara', n:'Vignette only (No BG)'},
+  {id:'vignette_soho',  n:'Vignette (With BG)'}
 ];
 
 // ── FONT STYLES (20) ───────────────────────
@@ -883,11 +882,6 @@ function renderBG(bs,p,t=0){
       const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
       vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');x.fillStyle=vg;x.fillRect(0,0,W,H);break;
     }
-    case 'vignette_chara':{
-      x.clearRect(0,0,W,H);
-      const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
-      vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');x.fillStyle=vg;x.fillRect(0,0,W,H);break;
-    }
     case 'cglow':{
       solid(bg);
       [[Math.sin(t*0.008)*80,Math.cos(t*0.008)*80,c2],
@@ -936,7 +930,7 @@ function renderBG(bs,p,t=0){
   }
 
   // Apply global vignette overlay if enabled (unless it is already a vignette style background)
-  if (applyVignetteOverlay && bs.id !== 'vignette' && bs.id !== 'vignette_soho' && bs.id !== 'vignette_chara') {
+  if (applyVignetteOverlay && bs.id !== 'vignette' && bs.id !== 'vignette_soho') {
     const vg=bgCx.createRadialGradient(W/2,H/2,H*(0.3 + Math.sin(t*0.008)*0.02),W/2,H/2,H*(0.95 + Math.sin(t*0.01)*0.03));
     vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.72)');
     x.save();
@@ -952,13 +946,11 @@ function renderBG(bs,p,t=0){
   x.fillRect(0, 0, W, H);
   x.restore();
 
-  // Universal dark overlay — tones down all backgrounds (bypassed for Vignette only style)
-  if (bs.id !== 'vignette_chara') {
-    x.save();
-    x.fillStyle = 'rgba(0,0,0,0.28)';
-    x.fillRect(0, 0, W, H);
-    x.restore();
-  }
+  // Universal dark overlay — tones down all backgrounds
+  x.save();
+  x.fillStyle = 'rgba(0,0,0,0.28)';
+  x.fillRect(0, 0, W, H);
+  x.restore();
 
   return bgCv.toDataURL();
 }
