@@ -951,8 +951,6 @@ function renderBG(bs,p,t=0){
   x.fillStyle = 'rgba(0,0,0,0.28)';
   x.fillRect(0, 0, W, H);
   x.restore();
-
-  return bgCv.toDataURL();
 }
 
 // ── AVATAR DEFAULT SVG ─────────────────────
@@ -1059,12 +1057,15 @@ async function renderDesign(ds){
   fc.clear();
 
   // 1. Background
-  const bgURL=renderBG(bg,pal,bgTime);
-  await new Promise(res=>fabric.Image.fromURL(bgURL,img=>{
-    img.set({left:0,top:0,selectable:false,evented:false,id:'background'});
-    fc.add(img);
-    res();
-  }));
+  renderBG(bg,pal,bgTime);
+  const bgImg = new fabric.Image(bgCv, {
+    left: 0,
+    top: 0,
+    selectable: false,
+    evented: false,
+    id: 'background'
+  });
+  fc.add(bgImg);
 
 
 
@@ -1191,6 +1192,13 @@ function setRecordingProgress(show, percent, label = '2K') {
 async function exportMP4(targetWidth, targetHeight, label) {
   const wasAnimating = isAnimating;
   
+  // Pause the normal preview animation loop to prevent interference
+  isAnimating = false;
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
+  
   fc.discardActiveObject();
   fc.renderAll();
   
@@ -1202,6 +1210,9 @@ async function exportMP4(targetWidth, targetHeight, label) {
   // Disable window resize scaling during export
   window.removeEventListener('resize', updateScale);
   
+  // CRITICAL: Disable retina scaling during export so backing store width and height match targetWidth and targetHeight exactly
+  fc.enableRetinaScaling = false;
+  
   // Set dimensions to target resolution
   fc.setDimensions({ width: targetWidth, height: targetHeight });
   fc.setZoom(targetWidth / CW);
@@ -1210,22 +1221,66 @@ async function exportMP4(targetWidth, targetHeight, label) {
   bgCv.width = targetWidth;
   bgCv.height = targetHeight;
   
+  // Reset animation time so export starts from the beginning frame consistently
+  bgTime = 0;
+  decorTime = 0;
+  
+  // Re-render the design to reset all elements to their starting state
+  await renderDesign(designState);
+  
   // Wait for settles
   await new Promise(r => setTimeout(r, 150));
   
-  let options = { mimeType: 'video/mp4;codecs=h264', videoBitsPerSecond: 15000000 };
-  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 15000000 };
+  const candidates = [
+    'video/mp4;codecs=avc1',
+    'video/mp4;codecs="avc1.42E01E"',
+    'video/mp4',
+    'video/webm;codecs=vp9',
+    'video/webm;codecs=vp8',
+    'video/webm'
+  ];
+  
+  let chosenMime = '';
+  for (const candidate of candidates) {
+    if (MediaRecorder.isTypeSupported(candidate)) {
+      chosenMime = candidate;
+      break;
+    }
   }
-  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/webm;codecs=vp8', videoBitsPerSecond: 15000000 };
+  
+  if (!chosenMime) {
+    chosenMime = 'video/webm';
   }
-  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-    options = { mimeType: 'video/webm', videoBitsPerSecond: 15000000 };
+  
+  let options = { mimeType: chosenMime, videoBitsPerSecond: 15000000 };
+  
+  let audioTrack = null;
+  let audioCtx = null;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const dest = audioCtx.createMediaStreamDestination();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.0001; // extremely quiet but non-zero to keep the audio engine rendering
+    osc.connect(gain);
+    gain.connect(dest);
+    osc.start();
+    audioTrack = dest.stream.getAudioTracks()[0];
+  } catch (e) {
+    console.warn("Failed to create silent audio track for export", e);
   }
   
   const canvasEl = fc.lowerCanvasEl;
-  const stream = canvasEl.captureStream(30); // 30fps
+  
+  // Use manual frame-by-frame capture stream
+  const stream = canvasEl.captureStream(0);
+  const track = stream.getVideoTracks()[0];
+  if (audioTrack) {
+    stream.addTrack(audioTrack);
+  }
   const chunks = [];
   const recorder = new MediaRecorder(stream, options);
   
@@ -1233,7 +1288,34 @@ async function exportMP4(targetWidth, targetHeight, label) {
     if (e.data && e.data.size > 0) chunks.push(e.data);
   };
   
+  recorder.onerror = e => {
+    console.error("MediaRecorder error during export:", e);
+    toast('❌', `Export error: ${e.error ? e.error.name : 'Unknown error'}`, 'error');
+  };
+  
+  const fps = 30;
+  const totalFrames = 10 * fps; // 10 seconds * 30 fps = 300 frames
+  let currentFrame = 0;
+  
+  let fallbackTimerId = null;
+  const frameDuration = 1000 / fps; // 33.33ms
+  
+  const cleanup = () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    if (fallbackTimerId) {
+      clearTimeout(fallbackTimerId);
+      fallbackTimerId = null;
+    }
+    if (audioCtx) {
+      try {
+        audioCtx.close();
+      } catch (e) {}
+    }
+  };
+
   recorder.onstop = () => {
+    cleanup();
+    
     const blob = new Blob(chunks, { type: options.mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1244,6 +1326,9 @@ async function exportMP4(targetWidth, targetHeight, label) {
     
     // Remove exporting class
     document.body.classList.remove('exporting');
+    
+    // CRITICAL: Re-enable retina scaling so the on-screen display remains crisp
+    fc.enableRetinaScaling = true;
     
     // Restore window resize and original scaling
     window.addEventListener('resize', updateScale);
@@ -1268,27 +1353,152 @@ async function exportMP4(targetWidth, targetHeight, label) {
     toast('🎬', `Exported ${label} Video successfully!`, 'ok');
   };
   
-  // Make sure animation loop is active during recording
-  if (!isAnimating) {
-    isAnimating = true;
-    animationLoop();
-  }
+  // Visibility change listener to handle backgrounding gracefully
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      if (recorder.state === 'recording') {
+        recorder.pause();
+        if (fallbackTimerId) {
+          clearTimeout(fallbackTimerId);
+          fallbackTimerId = null;
+        }
+        toast('⚠️', 'Export paused. Keep this tab active to resume.', 'warn');
+      }
+    } else {
+      if (recorder.state === 'paused') {
+        recorder.resume();
+        fallbackTimerId = setTimeout(tickFunc, 1);
+        toast('🎬', 'Resuming export...', 'ok');
+      }
+    }
+  };
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  
+  // Single unified sequential frame generation function
+  const tickFunc = async () => {
+    if (recorder.state === 'paused') return;
+    
+    currentFrame++;
+    if (currentFrame >= totalFrames) {
+      recorder.stop();
+      return;
+    }
+    
+    const frameStartTime = performance.now();
+    
+    // Advance times by (60 / fps) since original loop runs at 60fps
+    const timeStep = 60 / fps;
+    bgTime += bgSpeedMultiplier * timeStep;
+    decorTime += decorSpeedMultiplier * timeStep;
+    
+    // Update background (high-quality render)
+    const bgImg = fc.getObjects().find(o => o.id === 'background');
+    if (bgImg && designState.bg && designState.pal) {
+      renderBG(designState.bg, designState.pal, bgTime);
+      bgImg.dirty = true;
+    }
+    
+    // Update interactive floating decorations
+    const objects = fc.getObjects();
+    for (let i = 0; i < objects.length; i++) {
+      const obj = objects[i];
+      if (obj.isDecor) {
+        const updates = {};
+        
+        // Oscillation / Hover
+        if (obj.oscillate) {
+          if (obj.ox === undefined) obj.ox = obj.left;
+          if (obj.oy === undefined) obj.oy = obj.top;
+          
+          updates.left = obj.ox + (obj.dx || 0) * Math.sin(decorTime * (obj.oscillateSpeed || 0.01) + (obj.oscillatePhase || 0));
+          updates.top = obj.oy + (obj.dy || 0) * Math.sin(decorTime * (obj.oscillateSpeed || 0.01) + (obj.oscillatePhase || 0));
+        }
+        
+        // Angle Oscillation
+        if (obj.oscillateAngle) {
+          if (obj.baseAngle === undefined) obj.baseAngle = obj.angle || 0;
+          updates.angle = obj.baseAngle + (obj.oscillateAngleRange || 10) * Math.sin(decorTime * (obj.oscillateAngleSpeed || 0.01) + (obj.oscillateAnglePhase || 0));
+        }
+
+        // Opacity Pulse
+        if (obj.pulseOpacitySpeed !== undefined) {
+          if (obj.baseOpacity === undefined) obj.baseOpacity = obj.opacity !== undefined ? obj.opacity : 1.0;
+          updates.opacity = obj.baseOpacity * (1.0 + Math.sin(decorTime * obj.pulseOpacitySpeed + (obj.pulseOpacityPhase || 0)) * (obj.pulseOpacityRange || 0.2));
+        }
+
+        // Drift
+        if (obj.vx !== undefined) {
+          const currentLeft = updates.left !== undefined ? updates.left : obj.left;
+          let newLeft = currentLeft + obj.vx * decorSpeedMultiplier * timeStep;
+          const radius = obj.radius || Math.max(obj.width * (obj.scaleX || 1.0), obj.height * (obj.scaleY || 1.0)) / 2 || 100;
+          if (newLeft > CW + radius) newLeft = -radius;
+          if (newLeft < -radius) newLeft = CW + radius;
+          updates.left = newLeft;
+        }
+        if (obj.vy !== undefined) {
+          const currentTop = updates.top !== undefined ? updates.top : obj.top;
+          let newTop = currentTop + obj.vy * decorSpeedMultiplier * timeStep;
+          const radius = obj.radius || Math.max(obj.width * (obj.scaleX || 1.0), obj.height * (obj.scaleY || 1.0)) / 2 || 100;
+          if (newTop > CH + radius) newTop = -radius;
+          if (newTop < -radius) newTop = CH + radius;
+          updates.top = newTop;
+        }
+        // Rotation
+        if (obj.rotationSpeed !== undefined) {
+          const currentAngle = updates.angle !== undefined ? updates.angle : obj.angle;
+          updates.angle = (currentAngle + obj.rotationSpeed * decorSpeedMultiplier * timeStep) % 360;
+        }
+        // Scale Pulse
+        if (obj.pulseSpeed !== undefined) {
+          const scaleVal = obj.baseScale * (1.0 + Math.sin(decorTime * obj.pulseSpeed + obj.pulsePhase) * obj.pulseRange);
+          updates.scaleX = scaleVal;
+          updates.scaleY = scaleVal;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          obj.set(updates);
+          obj.setCoords();
+        }
+      }
+    }
+    
+    // Render the canvas
+    fc.renderAll();
+    
+    // Wait for the render to be fully drawn and painted on the screen to avoid skipping frames
+    await new Promise(r => requestAnimationFrame(r));
+    
+    // Capture this frame to the stream
+    if (track && typeof track.requestFrame === 'function') {
+      track.requestFrame();
+    }
+    
+    // Update progress overlay
+    const percent = Math.min(Math.round((currentFrame / totalFrames) * 100), 100);
+    setRecordingProgress(true, percent, label);
+    
+    // Calculate how much time we spent on this frame
+    const elapsed = performance.now() - frameStartTime;
+    // We aim for exactly 33.3ms per frame. If rendering was fast, we wait out the delay to maintain 30fps.
+    // If it took longer, we proceed immediately.
+    const delay = Math.max(0, frameDuration - elapsed);
+    
+    if (recorder.state === 'recording') {
+      fallbackTimerId = setTimeout(tickFunc, delay);
+    }
+  };
   
   recorder.start();
   
-  // Track progress over 10 seconds (10000ms)
-  let elapsed = 0;
-  const progressInterval = setInterval(() => {
-    elapsed += 100;
-    const percent = Math.min(Math.round((elapsed / 10000) * 100), 99);
-    setRecordingProgress(true, percent, label);
-  }, 100);
+  // Capture the first frame at time = 0
+  if (track && typeof track.requestFrame === 'function') {
+    track.requestFrame();
+  }
   
-  setTimeout(() => {
-    clearInterval(progressInterval);
-    setRecordingProgress(true, 100, label);
-    recorder.stop();
-  }, 10000);
+  // Start the sequential loop
+  fallbackTimerId = setTimeout(tickFunc, 1);
+  toast('🎬', 'Export started. Keep this tab active.', 'ok');
 }
 
 // ── MOTION ANIMATION SYSTEM ────────────────
@@ -1305,7 +1515,7 @@ function animationLoop() {
   const bgImg = fc.getObjects().find(o => o.id === 'background');
   if (bgImg && designState.bg && designState.pal) {
     renderBG(designState.bg, designState.pal, bgTime);
-    bgImg.setElement(bgCv);
+    bgImg.dirty = true;
   }
   
   // 2. Update interactive floating decorations
