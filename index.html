@@ -354,7 +354,7 @@ const PALETTES = [
   {n:'Emerald Dark',   bg:'#001a0d',c1:'#003d1f',c2:'#005929',c3:'#006633',acc:'#FF4500'},
 ];
 
-// ── BACKGROUND STYLES (13 patterned) ───────
+// ── BACKGROUND STYLES (11 patterned) ───────
 const BG_STYLES = [
   {id:'grid',           n:'Grid',           gs:60,lw:2.0,op:0.60},
   {id:'grid_h',         n:'Heavy Grid',     gs:40,lw:3.0,op:0.70},
@@ -784,18 +784,18 @@ function renderBG(bs,p,t=0){
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       x.strokeStyle=acc;x.lineWidth=bs.lw||2.0;x.globalAlpha=bs.op||0.60;
       const gs=bs.gs||60;
-      const dx=(t*0.35)%gs, dy=(t*0.25)%gs;
-      for(let i=dx-gs*2;i<=W+gs*2;i+=gs){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke();}
-      for(let i=dy-gs*2;i<=H+gs*2;i+=gs){x.beginPath();x.moveTo(0,i);x.lineTo(W,i);x.stroke();}
+      const dx=t*0.35, dy=t*0.25;
+      for(let i=(dx%gs)-gs*2;i<=W+gs*2;i+=gs){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke();}
+      for(let i=(dy%gs)-gs*2;i<=H+gs*2;i+=gs){x.beginPath();x.moveTo(0,i);x.lineTo(W,i);x.stroke();}
       x.globalAlpha=1;break;
     }
     case 'dots':case 'dots_l':{
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       x.fillStyle=acc;x.globalAlpha=bs.op||0.70;
       const sp=bs.sp||28,dr=bs.dr||3.5;
-      const dx=(t*0.3)%sp, dy=(t*0.2)%sp;
-      for(let px=dx-sp*2;px<W+sp*2;px+=sp){
-        for(let py=dy-sp*2;py<H+sp*2;py+=sp){
+      const dx=t*0.3, dy=t*0.2;
+      for(let px=(dx%sp)-sp*2;px<W+sp*2;px+=sp){
+        for(let py=(dy%sp)-sp*2;py<H+sp*2;py+=sp){
           x.beginPath();x.arc(px,py,dr,0,Math.PI*2);x.fill();
         }
       }
@@ -805,8 +805,9 @@ function renderBG(bs,p,t=0){
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       x.globalAlpha=0.28;x.fillStyle=acc;
       const sw=bs.sw||28;
-      const dx=(t*0.4)%(sw*2);
-      for(let i=-H-sw*2+dx;i<W+H;i+=sw*2){
+      const dx=t*0.4;
+      const ox=dx%(sw*2);
+      for(let i=-H-sw*2+ox;i<W+H;i+=sw*2){
         x.beginPath();x.moveTo(i,0);x.lineTo(i+sw,0);x.lineTo(i+sw+H,H);x.lineTo(i+H,H);x.closePath();x.fill();
       }
       x.globalAlpha=1;break;
@@ -815,10 +816,11 @@ function renderBG(bs,p,t=0){
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       x.strokeStyle=acc;x.lineWidth=2.0;x.globalAlpha=bs.op||0.55;
       const sz=40;
-      const dx=(t*0.35)%sz;
-      for(let i=dx-sz*2;i<W+sz*2;i+=sz){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke();}
-      for(let i=dx-sz*2;i<H+sz*2;i+=sz){x.beginPath();x.moveTo(0,i);x.lineTo(W,i);x.stroke();}
-      for(let i=-H-sz*2+dx;i<W+H+sz*2;i+=sz){
+      const dx=t*0.35;
+      const ox=dx%sz;
+      for(let i=ox-sz*2;i<W+sz*2;i+=sz){x.beginPath();x.moveTo(i,0);x.lineTo(i,H);x.stroke();}
+      for(let i=ox-sz*2;i<H+sz*2;i+=sz){x.beginPath();x.moveTo(0,i);x.lineTo(W,i);x.stroke();}
+      for(let i=-H-sz*2+ox;i<W+H+sz*2;i+=sz){
         x.beginPath();x.moveTo(i,0);x.lineTo(i+H,H);x.stroke();
         x.beginPath();x.moveTo(i+H,0);x.lineTo(i,H);x.stroke();
       }
@@ -826,13 +828,20 @@ function renderBG(bs,p,t=0){
     }
     case 'tri':{
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
-      const ts=bs.sz||80;x.globalAlpha=bs.op||0.45;let row=0;
-      const dy=(t*0.3)%(ts*0.866), dx=(t*0.15)%ts;
-      for(let py=-ts*2+dy;py<H+ts*2;py+=ts*0.866){
-        for(let px=-ts*2+(row%2===0?0:ts/2)+dx;px<W+ts*2;px+=ts){
-          x.fillStyle=acc;x.beginPath();x.moveTo(px,py);x.lineTo(px+ts/2,py+ts*0.866);x.lineTo(px-ts/2,py+ts*0.866);x.closePath();x.fill();
+      const ts=bs.sz||80;x.globalAlpha=bs.op||0.45;
+      const dy=t*0.3, dx=t*0.15;
+      const hh = ts*0.866;
+      const r_start = Math.floor(-dy / hh) - 2;
+      const r_end   = r_start + Math.ceil(H / hh) + 4;
+      const c_start = Math.floor(-dx / ts) - 2;
+      const c_end   = c_start + Math.ceil(W / ts) + 4;
+      for(let r=r_start; r<r_end; r++){
+        const py = r * hh + dy;
+        const stagger = (Math.abs(r) % 2 === 1 ? ts / 2 : 0);
+        for(let c=c_start; c<c_end; c++){
+          const px = c * ts + stagger + dx;
+          x.fillStyle=acc;x.beginPath();x.moveTo(px,py);x.lineTo(px+ts/2,py+hh);x.lineTo(px-ts/2,py+hh);x.closePath();x.fill();
         }
-        row++;
       }
       x.globalAlpha=1;break;
     }
@@ -840,14 +849,18 @@ function renderBG(bs,p,t=0){
       x.fillStyle=lin(135 + t * 0.12,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       const hs=bs.sz||60,hw=hs*2,hh=Math.sqrt(3)*hs;
       x.strokeStyle=acc;x.lineWidth=2.0;x.globalAlpha=bs.op||0.60;
-      const dx=(t*0.3)%hw, dy=(t*0.17)%hh;
-      const colStart = -4;
-      const colEnd = Math.ceil(W / (hw * 0.75)) + 4;
-      const rowStart = -4;
-      const rowEnd = Math.ceil(H / hh) + 4;
-      for(let row=rowStart;row<rowEnd;row++){
-        for(let col=colStart;col<colEnd;col++){
-          const hx=col*hw*0.75+(row%2)*hw*0.375+dx,hy=row*hh+dy;
+      const dx=t*0.3, dy=t*0.17;
+      const r_start = Math.floor(-dy / hh) - 2;
+      const r_end   = r_start + Math.ceil(H / hh) + 4;
+      const c_step  = hw * 0.75;
+      const c_start = Math.floor(-dx / c_step) - 2;
+      const c_end   = c_start + Math.ceil(W / c_step) + 4;
+      for(let r=r_start; r<r_end; r++){
+        const py = r * hh + dy;
+        const stagger = (Math.abs(r) % 2 === 1 ? hw * 0.375 : 0);
+        for(let c=c_start; c<c_end; c++){
+          const hx = c * c_step + stagger + dx;
+          const hy = py;
           x.beginPath();
           for(let i=0;i<6;i++){
             const a=(i*60-30)*Math.PI/180;
@@ -910,18 +923,19 @@ function renderBG(bs,p,t=0){
       x.fillStyle=lin(180 + t * 0.1,[[0,bg],[1,c1]]);x.fillRect(0,0,W,H);
       x.strokeStyle=acc;x.lineWidth=2.0;x.globalAlpha=bs.op||0.55;
       const gs=60;
-      const dx=(t*0.12)%gs, dy=(t*0.12)%gs;
-      for(let px=-gs*2;px<W+gs*2;px+=gs){
-        for(let py=-gs*2;py<H+gs*2;py+=gs){
-          // Deterministic pseudo-random value based on grid coordinate to prevent flickering
-          const val = Math.abs(Math.sin((px + 500) * 12.9898 + (py + 500) * 78.233) * 43758.5453) % 1;
+      const dx=t*0.12, dy=t*0.12;
+      for(let ox=(dx%gs)-gs*2; ox<W+gs*2; ox+=gs){
+        for(let oy=(dy%gs)-gs*2; oy<H+gs*2; oy+=gs){
+          const worldX = Math.round(ox - dx);
+          const worldY = Math.round(oy - dy);
+          const val = Math.abs(Math.sin((worldX + 500) * 12.9898 + (worldY + 500) * 78.233) * 43758.5453) % 1;
           if(val > 0.58){
-            x.beginPath();x.moveTo(px+dx,py+dy);
+            x.beginPath();x.moveTo(ox,oy);
             const dirs=[[gs,0],[-gs,0],[0,gs],[0,-gs]];
             const dirIdx = Math.floor(val * 100) % dirs.length;
             const d = dirs[dirIdx];
-            x.lineTo(px+d[0]+dx,py+d[1]+dy);x.stroke();
-            x.beginPath();x.arc(px+dx,py+dy,3,0,Math.PI*2);x.fill();
+            x.lineTo(ox+d[0],oy+d[1]);x.stroke();
+            x.beginPath();x.arc(ox,oy,3,0,Math.PI*2);x.fill();
           }
         }
       }
